@@ -16,13 +16,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VoyagerToFilament\\\\": "src/"
+            "VoyagerToFilament\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "VoyagerToFilament\\\\VoyagerToFilamentServiceProvider"
+                "VoyagerToFilament\\VoyagerToFilamentServiceProvider"
             ]
         }
     }
