@@ -8,21 +8,20 @@ use ZipArchive;
 
 class ExportVoyagerToFilament extends Command
 {
-    protected $signature = 'export:voyager-to-filament';
-    protected $description = 'Exportiere Voyager-Modelle für Filament als ZIP';
+    protected $signature = 'voyager-to-filament:export';
+    protected $description = 'Exportiere Voyager-Modelle und Migrationen für Filament';
 
     public function handle()
     {
         $exportPath = storage_path('voyager_to_filament');
         $filamentModelsPath = $exportPath . '/app/Models';
-        $filamentResourcesPath = $exportPath . '/app/Filament/Resources';
         $migrationPath = $exportPath . '/database/migrations';
 
         File::deleteDirectory($exportPath);
         File::makeDirectory($filamentModelsPath, 0755, true);
-        File::makeDirectory($filamentResourcesPath, 0755, true);
         File::makeDirectory($migrationPath, 0755, true);
 
+        // Modelle aus app/ nach app/Models verschieben
         $voyagerModelsPath = app_path();
         $modelFiles = File::files($voyagerModelsPath);
 
@@ -35,29 +34,25 @@ class ExportVoyagerToFilament extends Command
             $filePath = $file->getPathname();
             $newFilePath = $filamentModelsPath . '/' . $fileName;
 
+            // Namespace anpassen
             $content = File::get($filePath);
             $updatedContent = str_replace('namespace App;', 'namespace App\Models;', $content);
-
             File::put($newFilePath, $updatedContent);
+
             $this->info("Model exportiert: $fileName");
-
-            $modelClassName = pathinfo($fileName, PATHINFO_FILENAME);
-            $this->call('make:filament-resource', ['name' => $modelClassName]);
-
-            $generatedResourcePath = app_path("Filament/Resources/{$modelClassName}Resource.php");
-            if (File::exists($generatedResourcePath)) {
-                File::move($generatedResourcePath, $filamentResourcesPath . "/{$modelClassName}Resource.php");
-            }
         }
 
+        // Migrationen generieren
         $this->info("Erstelle Migrationen...");
         $this->call('migrate:generate');
 
+        // Migrationen kopieren
         $generatedMigrations = File::files(database_path('migrations'));
         foreach ($generatedMigrations as $migrationFile) {
             File::copy($migrationFile->getPathname(), $migrationPath . '/' . $migrationFile->getFilename());
         }
 
+        // ZIP-Datei erstellen
         $zipFile = storage_path('voyager_to_filament.zip');
         $this->zipDirectory($exportPath, $zipFile);
         $this->info("Export abgeschlossen! ZIP gespeichert unter: $zipFile");
