@@ -25,10 +25,11 @@ class ExportVoyagerToFilament extends Command
         $voyagerModelsPath = app_path();
         $modelFiles = File::files($voyagerModelsPath);
 
-        foreach ($modelFiles as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
+     foreach ($modelFiles as $file) {
+    if ($file->getFilename() === 'User.php') {
+        $this->info("Überspringe User.php...");
+        continue; // Ignoriere die Datei
+    }
 
             $fileName = $file->getFilename();
             $filePath = $file->getPathname();
