@@ -1,12 +1,12 @@
 {
-    "name": "deinname/laravel-voyager-to-filament",
-    "description": "Ein Laravel-Plugin, um Voyager-Modelle in Filament-Resources zu konvertieren.",
+    "name": "benwallmeyer/laravel-voyager-to-filament",
+    "description": "A laravel Plugin that converts Laravel Voyager Models to Filament",
     "type": "library",
     "license": "MIT",
     "authors": [
         {
-            "name": "Dein Name",
-            "email": "dein.email@example.com"
+            "name": "Ben Wallmeyer",
+            "email": "bw@coswa.it"
         }
     ],
     "require": {
@@ -16,13 +16,13 @@
     },
     "autoload": {
         "psr-4": {
-            "VoyagerToFilament\\": "src/"
+            "VoyagerToFilament\\\\": "src/"
         }
     },
     "extra": {
         "laravel": {
             "providers": [
-                "VoyagerToFilament\\VoyagerToFilamentServiceProvider"
+                "VoyagerToFilament\\\\VoyagerToFilamentServiceProvider"
             ]
         }
     }
