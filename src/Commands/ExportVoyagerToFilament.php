@@ -16,13 +16,20 @@ class ExportVoyagerToFilament extends Command
         $exportPath = storage_path('voyager_to_filament');
         $filamentModelsPath = $exportPath . '/app/Models';
         $controllerPath = $exportPath . '/app/Http/Controllers';
-        $traitPath = $exportPath . '/app/Traits';
+        $traitPaths = [
+            $exportPath . '/app/Traits',
+            $exportPath . '/app/Http/Traits',
+            $exportPath . '/app/Http/Controllers/Traits',
+            $exportPath . '/app/Models/Traits'
+        ];
         $migrationPath = $exportPath . '/database/migrations';
 
         File::deleteDirectory($exportPath);
         File::makeDirectory($filamentModelsPath, 0755, true);
         File::makeDirectory($controllerPath, 0755, true);
-        File::makeDirectory($traitPath, 0755, true);
+        foreach ($traitPaths as $path) {
+            File::makeDirectory($path, 0755, true);
+        }
         File::makeDirectory($migrationPath, 0755, true);
 
         // Modelle exportieren
@@ -81,19 +88,28 @@ class ExportVoyagerToFilament extends Command
             $this->info("Controller exportiert und Model-Import angepasst: $fileName");
         }
 
-        // Traits exportieren
-        if (File::exists(app_path('Traits'))) {
-            $traitFiles = File::files(app_path('Traits'));
-            foreach ($traitFiles as $file) {
-                if ($file->getExtension() !== 'php') {
-                    continue;
-                }
+        // Traits exportieren aus möglichen Verzeichnissen
+        $traitSearchPaths = [
+            app_path('Traits'),
+            app_path('Http/Traits'),
+            app_path('Http/Controllers/Traits'),
+            app_path('Models/Traits')
+        ];
+        
+        foreach ($traitSearchPaths as $index => $traitSearchPath) {
+            if (is_dir($traitSearchPath)) {
+                $traitFiles = File::allFiles($traitSearchPath);
+                foreach ($traitFiles as $file) {
+                    if ($file->getExtension() !== 'php') {
+                        continue;
+                    }
 
-                $fileName = $file->getFilename();
-                $filePath = $file->getPathname();
-                $newFilePath = $traitPath . '/' . $fileName;
-                File::copy($filePath, $newFilePath);
-                $this->info("Trait exportiert: $fileName");
+                    $fileName = $file->getFilename();
+                    $filePath = $file->getPathname();
+                    $newFilePath = $traitPaths[$index] . '/' . $fileName;
+                    File::copy($filePath, $newFilePath);
+                    $this->info("Trait exportiert: $fileName");
+                }
             }
         }
 
