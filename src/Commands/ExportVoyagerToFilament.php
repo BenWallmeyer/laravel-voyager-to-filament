@@ -47,7 +47,11 @@ class ExportVoyagerToFilament extends Command
 
                 // Model übernehmen und Namespace anpassen, falls nötig
                 $content = File::get($filePath);
-                $updatedContent = str_replace('namespace App;', 'namespace App\\Models;', $content);
+                $updatedContent = str_replace(
+                    ['namespace App;', 'namespace App\Models\Http\'],
+                    'namespace App\Models;',
+                    $content
+                );
                 File::put($newFilePath, $updatedContent);
                 $this->info("Model exportiert: $fileName");
             }
@@ -67,7 +71,9 @@ class ExportVoyagerToFilament extends Command
             // Controller-Inhalt übernehmen und Model-Import anpassen
             $content = File::get($filePath);
             $updatedContent = str_replace(
-                'use App\\', 'use App\\Models\\', $content
+                ['use App\Models\Http\Controllers\', 'use App\Models\Http\Traits\'],
+                ['use App\Http\Controllers\', 'use App\Traits\'],
+                $content
             );
             File::put($newFilePath, $updatedContent);
             $this->info("Controller exportiert und Model-Import angepasst: $fileName");
