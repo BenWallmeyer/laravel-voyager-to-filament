@@ -45,23 +45,24 @@ class ExportVoyagerToFilament extends Command
                 $filePath = $file->getPathname();
                 $newFilePath = $filamentModelsPath . '/' . $fileName;
 
-                // Model übernehmen, ohne Namespace-Anpassung
-                File::copy($filePath, $newFilePath);
+                // Model übernehmen und Namespace anpassen, falls nötig
+                $content = File::get($filePath);
+                $updatedContent = str_replace('namespace App;', 'namespace App\\Models;', $content);
+                File::put($newFilePath, $updatedContent);
                 $this->info("Model exportiert: $fileName");
 
                 // Controller übernehmen und Model-Import anpassen
-                $originalControllerPath = app_path('Http/Controllers/' . $fileName);
-                $newControllerPath = $controllerPath . '/' . $fileName;
+                $controllerFileName = str_replace('.php', 'Controller.php', $fileName);
+                $originalControllerPath = app_path('Http/Controllers/' . $controllerFileName);
+                $newControllerPath = $controllerPath . '/' . $controllerFileName;
                 
                 if (File::exists($originalControllerPath)) {
                     $controllerContent = File::get($originalControllerPath);
                     $updatedControllerContent = str_replace(
-                        ['use App\\', 'use App\\Models\\'],
-                        'use App\\Models\\',
-                        $controllerContent
+                        'use App\\', 'use App\\Models\\', $controllerContent
                     );
                     File::put($newControllerPath, $updatedControllerContent);
-                    $this->info("Controller exportiert und Model-Import angepasst: $fileName");
+                    $this->info("Controller exportiert und Model-Import angepasst: $controllerFileName");
                 }
             }
         }
