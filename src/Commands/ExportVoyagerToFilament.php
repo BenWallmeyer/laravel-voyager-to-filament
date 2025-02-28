@@ -9,18 +9,20 @@ use ZipArchive;
 class ExportVoyagerToFilament extends Command
 {
     protected $signature = 'voyager-to-filament:export';
-    protected $description = 'Exportiere Voyager-Modelle, Migrationen und Controller für Filament';
+    protected $description = 'Exportiere Voyager-Modelle, Migrationen, Controller und Traits für Filament';
 
     public function handle()
     {
         $exportPath = storage_path('voyager_to_filament');
         $filamentModelsPath = $exportPath . '/app/Models';
         $controllerPath = $exportPath . '/app/Http/Controllers';
+        $traitPath = $exportPath . '/app/Traits';
         $migrationPath = $exportPath . '/database/migrations';
 
         File::deleteDirectory($exportPath);
         File::makeDirectory($filamentModelsPath, 0755, true);
         File::makeDirectory($controllerPath, 0755, true);
+        File::makeDirectory($traitPath, 0755, true);
         File::makeDirectory($migrationPath, 0755, true);
 
         // Modelle exportieren
@@ -77,6 +79,22 @@ class ExportVoyagerToFilament extends Command
             );
             File::put($newFilePath, $updatedContent);
             $this->info("Controller exportiert und Model-Import angepasst: $fileName");
+        }
+
+        // Traits exportieren
+        if (File::exists(app_path('Traits'))) {
+            $traitFiles = File::files(app_path('Traits'));
+            foreach ($traitFiles as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+
+                $fileName = $file->getFilename();
+                $filePath = $file->getPathname();
+                $newFilePath = $traitPath . '/' . $fileName;
+                File::copy($filePath, $newFilePath);
+                $this->info("Trait exportiert: $fileName");
+            }
         }
 
         // Migrationen generieren
