@@ -50,21 +50,27 @@ class ExportVoyagerToFilament extends Command
                 $updatedContent = str_replace('namespace App;', 'namespace App\\Models;', $content);
                 File::put($newFilePath, $updatedContent);
                 $this->info("Model exportiert: $fileName");
-
-                // Controller übernehmen und Model-Import anpassen
-                $controllerFileName = str_replace('.php', 'Controller.php', $fileName);
-                $originalControllerPath = app_path('Http/Controllers/' . $controllerFileName);
-                $newControllerPath = $controllerPath . '/' . $controllerFileName;
-                
-                if (File::exists($originalControllerPath)) {
-                    $controllerContent = File::get($originalControllerPath);
-                    $updatedControllerContent = str_replace(
-                        'use App\\', 'use App\\Models\\', $controllerContent
-                    );
-                    File::put($newControllerPath, $updatedControllerContent);
-                    $this->info("Controller exportiert und Model-Import angepasst: $controllerFileName");
-                }
             }
+        }
+
+        // Controller exportieren
+        $controllerFiles = File::files(app_path('Http/Controllers'));
+        foreach ($controllerFiles as $file) {
+            if ($file->getExtension() !== 'php') {
+                continue;
+            }
+
+            $fileName = $file->getFilename();
+            $filePath = $file->getPathname();
+            $newFilePath = $controllerPath . '/' . $fileName;
+
+            // Controller-Inhalt übernehmen und Model-Import anpassen
+            $content = File::get($filePath);
+            $updatedContent = str_replace(
+                'use App\\', 'use App\\Models\\', $content
+            );
+            File::put($newFilePath, $updatedContent);
+            $this->info("Controller exportiert und Model-Import angepasst: $fileName");
         }
 
         // Migrationen generieren
