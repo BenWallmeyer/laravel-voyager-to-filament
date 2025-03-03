@@ -10,6 +10,11 @@ Füge das Paket mit Composer hinzu:
 composer require benwallmeyer/laravel-voyager-to-filament
 ```
 
+oder 
+```bash
+composer config repositories.voyager-to-filament vcs https://github.com/BenWallmeyer/laravel-voyager-to-filament.git
+```
+
 ## 🚀 Befehle
 
 ### **1. Export aus Voyager-Instanz**
