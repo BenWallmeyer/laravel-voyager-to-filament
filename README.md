@@ -9,10 +9,13 @@ Füge das Paket mit Composer hinzu:
 ```bash
 composer require benwallmeyer/laravel-voyager-to-filament
 ```
-
 oder 
 ```bash
 composer config repositories.voyager-to-filament vcs https://github.com/BenWallmeyer/laravel-voyager-to-filament.git
+```
+oder
+```bash
+composer require benwallmeyer/laravel-voyager-to-filament:dev-main --prefer-source
 ```
 
 ## 🚀 Befehle
