@@ -21,6 +21,7 @@ class VoyagerToFilamentServiceProvider extends ServiceProvider
 
             $this->commands([
                 ExportVoyagerToFilament::class,
+                ImportVoyagerToFilament::class,
             ]);
         }
     }
