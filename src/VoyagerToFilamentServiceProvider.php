@@ -4,6 +4,7 @@ namespace VoyagerToFilament;
 
 use Illuminate\Support\ServiceProvider;
 use VoyagerToFilament\Commands\ExportVoyagerToFilament;
+use VoyagerToFilament\Commands\ImportVoyagerToFilament;
 
 class VoyagerToFilamentServiceProvider extends ServiceProvider
 {
