@@ -83,10 +83,20 @@ class ImportVoyagerToFilament extends Command
             }
             
             $this->info("Führe Migrationen aus...");
-            try {
-                $this->call('migrate', ['--force' => true]);
-            } catch (\Exception $e) {
-                $this->error("Fehler beim Ausführen der Migrationen: " . $e->getMessage());
+            $errors = [];
+            foreach ($migrationFiles as $file) {
+                try {
+                    $this->call('migrate', ['--force' => true, '--path' => 'database/migrations/' . $file->getFilename()]);
+                } catch (\Exception $e) {
+                    $errors[] = "Fehler in Migration {$file->getFilename()}: " . $e->getMessage();
+                }
+            }
+            
+            if (!empty($errors)) {
+                $this->error("Folgende Migrationen sind fehlgeschlagen:");
+                foreach ($errors as $error) {
+                    $this->error($error);
+                }
             }
         }
     }
