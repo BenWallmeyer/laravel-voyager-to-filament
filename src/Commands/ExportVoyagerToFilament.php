@@ -9,145 +9,79 @@ use ZipArchive;
 class ExportVoyagerToFilament extends Command
 {
     protected $signature = 'voyager-to-filament:export';
-    protected $description = 'Exportiere Voyager-Modelle, Migrationen, Controller und Traits für Filament';
+    protected $description = 'Exportiert Voyager-Modelle, Migrationen, Controller und Traits für Filament';
 
     public function handle()
     {
-        $exportPath = storage_path('voyager_to_filament');
-        $filamentModelsPath = $exportPath . '/app/Models';
-        $controllerPath = $exportPath . '/app/Http/Controllers';
-        $traitPaths = [
-            $exportPath . '/app/Traits',
-            $exportPath . '/app/Http/Traits',
-            $exportPath . '/app/Http/Controllers/Traits',
-            $exportPath . '/app/Models/Traits'
-        ];
-        $migrationPath = $exportPath . '/database/migrations';
-
+        $exportPath = storage_path('voyager_to_filament_export');
         File::deleteDirectory($exportPath);
-        File::makeDirectory($filamentModelsPath, 0755, true);
-        File::makeDirectory($controllerPath, 0755, true);
-        foreach ($traitPaths as $path) {
-            File::makeDirectory($path, 0755, true);
-        }
-        File::makeDirectory($migrationPath, 0755, true);
-
-        // Modelle exportieren
-        $voyagerModelsPaths = [app_path(), app_path('Models')];
-        foreach ($voyagerModelsPaths as $voyagerModelsPath) {
-            if (!File::exists($voyagerModelsPath)) {
-                continue;
-            }
-
-            $modelFiles = File::files($voyagerModelsPath);
-            foreach ($modelFiles as $file) {
-                if ($file->getExtension() !== 'php') {
-                    continue;
-                }
-
-                if ($file->getFilename() === 'User.php') {
-                    $this->info("Überspringe User.php...");
-                    continue; // Ignoriere die Datei
-                }
-
-                $fileName = $file->getFilename();
-                $filePath = $file->getPathname();
-                $newFilePath = $filamentModelsPath . '/' . $fileName;
-
-                // Model übernehmen und Namespace anpassen, falls nötig
-                $content = File::get($filePath);
-                $updatedContent = str_replace(
-                    ['namespace App;', 'namespace App\\Models\\Http\\'],
-                    'namespace App\\Models;',
-                    $content
-                );
-                File::put($newFilePath, $updatedContent);
-                $this->info("Model exportiert: $fileName");
-            }
-        }
-
-        // Controller exportieren
-        $controllerFiles = File::files(app_path('Http/Controllers'));
-        foreach ($controllerFiles as $file) {
-            if ($file->getExtension() !== 'php') {
-                continue;
-            }
-
-            $fileName = $file->getFilename();
-            $filePath = $file->getPathname();
-            $newFilePath = $controllerPath . '/' . $fileName;
-
-            // Controller-Inhalt übernehmen und Model-Import anpassen
-            $content = File::get($filePath);
-            $updatedContent = str_replace(
-                ['use App\\Models\\Http\\Controllers\\', 'use App\\Models\\Http\\Traits\\'],
-                ['use App\\Http\\Controllers\\', 'use App\\Traits\\'],
-                $content
-            );
-            File::put($newFilePath, $updatedContent);
-            $this->info("Controller exportiert und Model-Import angepasst: $fileName");
-        }
-
-        // Traits exportieren aus möglichen Verzeichnissen
-        $traitSearchPaths = [
-            app_path('Traits'),
-            app_path('Http/Traits'),
-            app_path('Http/Controllers/Traits'),
-            app_path('Models/Traits')
-        ];
+        File::makeDirectory($exportPath, 0755, true);
         
-        foreach ($traitSearchPaths as $index => $traitSearchPath) {
-            if (is_dir($traitSearchPath)) {
-                $traitFiles = File::allFiles($traitSearchPath);
-                foreach ($traitFiles as $file) {
-                    if ($file->getExtension() !== 'php') {
-                        continue;
-                    }
-
-                    $fileName = $file->getFilename();
-                    $filePath = $file->getPathname();
-                    $newFilePath = $traitPaths[$index] . '/' . $fileName;
-                    File::copy($filePath, $newFilePath);
-                    $this->info("Trait exportiert: $fileName");
-                }
-            }
-        }
-
-        // Migrationen generieren
-        $this->info("Erstelle Migrationen...");
-        $this->call('migrate:generate');
-
-        // Migrationen kopieren
-        $generatedMigrations = File::files(database_path('migrations'));
-        foreach ($generatedMigrations as $migrationFile) {
-            File::copy($migrationFile->getPathname(), $migrationPath . '/' . $migrationFile->getFilename());
-        }
-
+        // Modelle, Controller und Traits exportieren
+        $this->exportDirectory(app_path('Models'), "$exportPath/app/Models");
+        $this->exportDirectory(app_path('Http/Controllers'), "$exportPath/app/Http/Controllers");
+        $this->exportDirectory(app_path('Traits'), "$exportPath/app/Traits");
+        $this->exportDirectory(app_path('Http/Traits'), "$exportPath/app/Http/Traits");
+        $this->exportDirectory(app_path('Http/Controllers/Traits'), "$exportPath/app/Http/Controllers/Traits");
+        $this->exportDirectory(app_path('Models/Traits'), "$exportPath/app/Models/Traits");
+        
+        // Migrationen exportieren mit Filter
+        $this->exportMigrations(database_path('migrations'), "$exportPath/database/migrations");
+        
         // ZIP-Datei erstellen
-        $zipFile = storage_path('voyager_to_filament.zip');
-        $this->zipDirectory($exportPath, $zipFile);
-        $this->info("Export abgeschlossen! ZIP gespeichert unter: $zipFile");
+        $this->createZip($exportPath);
+
+        $this->info("Export abgeschlossen! ZIP-Datei gespeichert in: " . storage_path('voyager_to_filament.zip'));
     }
 
-    private function zipDirectory($folder, $zipFile)
+    private function exportDirectory($source, $destination)
     {
-        $zip = new ZipArchive();
-        if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) {
-            return false;
+        if (File::exists($source)) {
+            File::copyDirectory($source, $destination);
+            $this->info("Exportiert: " . basename($source));
         }
+    }
 
-        $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($folder),
-            \RecursiveIteratorIterator::LEAVES_ONLY
-        );
+    private function exportMigrations($source, $destination)
+    {
+        if (File::exists($source)) {
+            $ignoredTables = [
+                'data_rows', 'data_types', 'failed_jobs', 'menus', 'menu_items',
+                'migrations', 'password_reset_tokens', 'permissions', 'permission_role',
+                'personal_access_tokens', 'roles', 'settings', 'translations', 'users', 'user_roles'
+            ];
 
-        foreach ($files as $file) {
-            if (!$file->isDir()) {
-                $relativePath = substr($file->getPathname(), strlen($folder) + 1);
-                $zip->addFile($file->getPathname(), $relativePath);
+            $migrationFiles = File::files($source);
+            foreach ($migrationFiles as $file) {
+                $fileName = $file->getFilename();
+                
+                // Prüfen, ob die Migration eine unerwünschte Tabelle enthält
+                foreach ($ignoredTables as $ignoredTable) {
+                    if (str_contains($fileName, $ignoredTable)) {
+                        $this->warn("Überspringe Export von Migration: $fileName");
+                        continue 2; // Zur nächsten Migration springen
+                    }
+                }
+                
+                File::copy($file->getPathname(), "$destination/$fileName");
+                $this->info("Migration exportiert: $fileName");
             }
         }
+    }
 
-        return $zip->close();
+    private function createZip($folder)
+    {
+        $zipFile = storage_path('voyager_to_filament.zip');
+        $zip = new ZipArchive();
+        if ($zip->open($zipFile, ZipArchive::CREATE | ZipArchive::OVERWRITE) === true) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($folder), \RecursiveIteratorIterator::LEAVES_ONLY);
+            foreach ($files as $file) {
+                if (!$file->isDir()) {
+                    $relativePath = substr($file->getPathname(), strlen($folder) + 1);
+                    $zip->addFile($file->getPathname(), $relativePath);
+                }
+            }
+            $zip->close();
+        }
     }
 }
