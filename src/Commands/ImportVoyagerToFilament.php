@@ -44,10 +44,8 @@ class ImportVoyagerToFilament extends Command
         $this->importDirectory($importPath . '/app/Models/Traits', app_path('Models/Traits'));
         
         // Migrationen importieren und ausführen
-        $this->importDirectory($importPath . '/database/migrations', database_path('migrations'));
-        $this->info("Führe Migrationen aus...");
-        $this->call('migrate');
-
+        $this->importMigrations($importPath . '/database/migrations');
+        
         // Filament-Resources für importierte Modelle erstellen
         $this->generateFilamentResources(app_path('Models'));
 
@@ -66,6 +64,26 @@ class ImportVoyagerToFilament extends Command
             if ($modifyModels) {
                 $this->addFillableAttributes($destination);
             }
+        }
+    }
+
+    private function importMigrations($migrationPath)
+    {
+        if (File::exists($migrationPath)) {
+            $migrationFiles = File::files($migrationPath);
+            foreach ($migrationFiles as $file) {
+                $fileName = $file->getFilename();
+                $filePath = $file->getPathname();
+                $destinationPath = database_path('migrations/' . $fileName);
+                
+                if (!File::exists($destinationPath)) {
+                    File::copy($filePath, $destinationPath);
+                    $this->info("Migration importiert: $fileName");
+                }
+            }
+            
+            $this->info("Führe Migrationen aus...");
+            $this->call('migrate', ['--force' => true]);
         }
     }
 
