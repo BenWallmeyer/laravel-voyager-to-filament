@@ -83,7 +83,11 @@ class ImportVoyagerToFilament extends Command
             }
             
             $this->info("Führe Migrationen aus...");
-            $this->call('migrate', ['--force' => true]);
+            try {
+                $this->call('migrate', ['--force' => true]);
+            } catch (\Exception $e) {
+                $this->error("Fehler beim Ausführen der Migrationen: " . $e->getMessage());
+            }
         }
     }
 
